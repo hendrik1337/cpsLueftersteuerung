@@ -1,4 +1,5 @@
 #! /bin/python3
+import math
 import time
 import RPi.GPIO as GPIO
 
@@ -13,14 +14,25 @@ def read_file(filename):
     return data
 
 
-def log(filename, timestamp, temp_c, temp_f, humidity, pressure):
+def log(filename, timestamp, temp_c, temp_f, humidity, pressure, taupunkt):
     with open(filename, "a") as f:
-        f.write(str(timestamp) + "\n")
-        f.write(str(temp_c) + "\n")
-        f.write(str(temp_f) + "\n")
-        f.write(str(humidity) + "\n")
-        f.write(str(pressure) + "\n")
+        f.write(str(timestamp) + "°C\n")
+        f.write("Temperatur (Celsius): " + str(temp_c) + "°C\n")
+        f.write("Temperatur (Fahrenheit): " + str(temp_f) + "°F\n")
+        f.write("Luftfeuchte: " + str(humidity) + "%\n")
+        f.write("Luftdruck: " + str(pressure) + "hPa\n")
+        f.write("Taupunkt: " + str(taupunkt) + "°C\n")
     f.close()
+
+
+def taupunkt_berechnen(temperatur, luftfeuchtigkeit):
+    a = 17.625
+    b = 243.04
+    c = math.log(luftfeuchtigkeit / 100)
+    d = a * temperatur / (b + temperatur)
+    e = c + d
+    taupunkt = (b * e) / (a - e)
+    return taupunkt
 
 
 def fan_on():
@@ -51,14 +63,18 @@ def main():
         pressure = read_file(f'{path}in_pressure_input')
         pressure = int(float(pressure)) * 10
 
+        taupunkt = taupunkt_berechnen(temperature, humidity)
+        taupunkt = round(taupunkt, 2)
+
         print(current_time)
         print("Temperatur (Celsius): " + str(temperature) + "°C")
         print("Temperatur (Fahrenheit): " + str(fahrenheit) + "°F")
         print("Luftfeuchte: " + str(humidity) + "%")
         print("Luftdruck: " + str(pressure) + "hPa")
+        print("Taupunkt: " + str(taupunkt))
         print()
 
-        log("/opt/lueftersteuerung/log.txt", current_time, temperature, fahrenheit, humidity, pressure)
+        log("/opt/lueftersteuerung/log.txt", current_time, temperature, fahrenheit, humidity, pressure, taupunkt)
 
         if temperature > 30.0:
             fan_on()
