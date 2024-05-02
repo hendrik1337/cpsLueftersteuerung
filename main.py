@@ -2,16 +2,24 @@
 # echo "bme280 0x76" > /sys/bus/i2c/devices/i2c-1/new_device
 import time
 from datetime import datetime
+import RPi.GPIO as GPIO
 
-now = datetime.now()
-
-current_time = now.strftime("%H:%M:%S")
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(23, GPIO.OUT)
 
 
 def read_file(filename):
     with open(filename, "r") as f:
         data = f.read().strip()
     return data
+
+
+def fan_on():
+    GPIO.output(23, GPIO.HIGH)
+
+
+def fan_off():
+    GPIO.output(23, GPIO.LOW)
 
 
 def main():
@@ -37,6 +45,11 @@ def main():
         print(str(humidity) + "%")
         print(str(pressure) + "hPa")
         print()
+
+        if temperature > 30.0:
+            fan_on()
+        else:
+            fan_off()
         time.sleep(10)
 
 
