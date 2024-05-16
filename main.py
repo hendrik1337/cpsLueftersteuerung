@@ -1,11 +1,7 @@
 #! /bin/python3
 import math
 import time
-import RPi.GPIO as GPIO
-
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(23, GPIO.OUT)
+import os
 
 
 def read_file(filename):
@@ -35,12 +31,23 @@ def taupunkt_berechnen(temperatur, luftfeuchtigkeit):
     return taupunkt
 
 
+def csv_export(filename, timestamp, temp_c, temp_f, humidity, pressure, taupunkt):
+    if not os.path.isfile(filename):
+        with open(filename, "w") as out:
+            out.write("#datatype measurement,string,double,double,long,long,double\n")
+            out.close()
+
+    with open(filename, "a") as out:
+        out.write(f"bme280,{timestamp};{temp_c};{temp_f};{humidity};{pressure};{taupunkt}\n")
+        out.close()
+
+
 def fan_on():
-    GPIO.output(23, GPIO.HIGH)
+    os.system("pigs w 23 1")
 
 
 def fan_off():
-    GPIO.output(23, GPIO.LOW)
+    os.system("pigs w 23 0")
 
 
 def main():
@@ -75,6 +82,8 @@ def main():
         print()
 
         log("/opt/lueftersteuerung/log.txt", current_time, temperature, fahrenheit, humidity, pressure, taupunkt)
+        csv_export("/opt/lueftersteuerung/auswertung/influx_data/log.csv", time.strftime("%d.%M.%y %H:%M:%S", now), temperature, fahrenheit,
+                   humidity, pressure, taupunkt)
 
         if temperature > 30.0:
             fan_on()
